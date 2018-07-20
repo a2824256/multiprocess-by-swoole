@@ -1,28 +1,33 @@
 <?php
+namespace autoPushWebsite;
+include_once "Db.php";
 
+use swoole_process;
 class Robot
 {
     public $workerMaxNum = 2;
     public $works = [];
     public $masterPid;
-    public $urls = [
-        "www.baidu.com",
-        "www.360.cn",
-        "blog.diligentyang.com",
-        "www.qq.com",
-    ];
-    public $engines = [
-        "https://www.baidu.com/s?ie=utf-8&f=8&rsv_bp=1&tn=baidu&wd=",
-        "https://www.sogou.com/web?query=",
-        "https://www.so.com/s?ie=utf-8&fr=none&src=360sou_newhome&q="
-    ];
+    public $urls = [];
+    public $engines = [];
     public $engineIndex = 0;
 
     //构造函数
     public function __construct()
     {
         try {
-            //主线程
+            Db::$config['spider'] = [
+                'server' => '127.0.0.1',
+                'port' => '3306',
+                'username' => 'root',
+//                'password' => '296b1654c32ceb03',
+                'password' => 'newlife',
+                'database_name' => 'spider',
+                'database_type' => 'mysql',
+                'charset' => 'utf8',
+            ];
+            $this->urls = Db::instance('spider')->select("urls", ["url"]);
+            $this->engines = Db::instance('spider')->select("engines", ["engine"]);
             $this->masterPid = posix_getpid();
             echo "master Pid " . $this->masterPid . PHP_EOL;
             $this->run();
@@ -64,14 +69,14 @@ class Robot
             return;
         }
         foreach ($this->urls as $value) {
-            $ch = curl_init($engine . $value);
+            $ch = curl_init($engine["engine"] . $value["url"]);
             curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
             curl_exec($ch);
             $statusCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
 //            echo $statusCode . " " . $engine . $value .  PHP_EOL;
             curl_close($ch);
         }
-        echo $engine . " finish" . PHP_EOL;
+        echo $engine["engine"] . " finish" . PHP_EOL;
         return;
     }
 
